@@ -1,0 +1,47 @@
+name: Extract Video to PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      reel_url:
+        description: "Video URL - Instagram, TikTok, Facebook, or YouTube (one video at a time)"
+        required: true
+        type: string
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Set up Deno (JS runtime for yt-dlp YouTube)
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Extract Reel and build PDF
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          ASSEMBLYAI_API_KEY: ${{ secrets.ASSEMBLYAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python cli_extract.py --url "${{ inputs.reel_url }}" --out results
+
+      - name: Upload PDF only
+        uses: actions/upload-artifact@v4
+        with:
+          name: reel-report
+          path: results/*.pdf
+          retention-days: 30
