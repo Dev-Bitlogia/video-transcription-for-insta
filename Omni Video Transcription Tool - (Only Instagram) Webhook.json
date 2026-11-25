@@ -1,0 +1,702 @@
+{
+  "name": "Omni Video Transcription Tool - (Only Instagram) Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup (v10 webhook + website fetch)\n1. Import as NEW workflow (do not overwrite the live one). Replace REPLACE_WITH_WORKSPACE_SECRET in **IF - Secret OK** with the same workspace secret used by the transcription webhook.\n2. Credentials: pick the Gmail credential on **Gmail - Send Audit PDF**. Apify, OpenAI and htmlcsstopdf carry over from the live workflow — re-select on the canvas if any shows as missing.\n3. Activate the workflow. Use the PRODUCTION webhook URL only, and give it only to the workspace developer.\n4. Report = **Validate Sources** → Generate Parts A/B/C (temperature 0.2) → **Assemble Report** → **Clean HTML** (throws if <12 sections) → **Convert HTML to PDF** → **Gmail - Send Audit PDF**.",
+        "height": 260,
+        "width": 380
+      },
+      "id": "e3131f84-394d-4201-8b41-26af58f8a5b6",
+      "name": "Sticky Note 34ecbd34",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "omni-transcription-instagram",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "58713511-d857-490f-9dc4-bacd7931629d",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        25008,
+        8208
+      ],
+      "webhookId": "63fd1ec3-1f18-4346-bc18-eb284f303365"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "72cb68a6-2473-4bcb-b396-70083518c594",
+              "leftValue": "={{ $json.body.workspaceSecret }}",
+              "rightValue": "Dev-Bitlogi@-427-Blue-Mango-8276$",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2e970357-aafc-4054-9937-750593af932c",
+      "name": "IF - Secret OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        25232,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Received - your video report PDF will be emailed to you.",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "9b2ab845-ee3d-4e93-9fdd-a93a0669a27f",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        25456,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "reel-url",
+              "name": "reel_url",
+              "type": "string",
+              "value": "={{ $('Webhook Trigger').first().json.body.reel_url }}"
+            },
+            {
+              "id": "owner",
+              "name": "owner",
+              "type": "string",
+              "value": "Khadijaehsan05"
+            },
+            {
+              "id": "repo",
+              "name": "repo",
+              "type": "string",
+              "value": "video-script-extractor"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('Webhook Trigger').first().json.body.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9527e474-71d4-48bb-b16d-d54f63678292",
+      "name": "Set Reel URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        25680,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{ $json.owner }}/{{ $json.repo }}/actions/workflows/extract.yml/dispatches",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": { \"reel_url\": \"{{ $json.reel_url }}\" }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "84f259aa-cfe1-41b3-887b-55734c355e64",
+      "name": "GitHub - Start Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        25888,
+        8208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v756DllAgpeSgKnw",
+          "name": "Header Auth account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "id": "eeb5027f-38fa-403c-9844-36904e676ff9",
+      "name": "Wait 3 min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        26112,
+        8208
+      ],
+      "webhookId": "f0abdc97-ee6f-43ad-b6c2-87b1e67e824f"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Set Reel URL').item.json.owner }}/{{ $('Set Reel URL').item.json.repo }}/actions/workflows/extract.yml/runs?per_page=1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "411d9862-94ef-46fa-b4f9-f387356e31e8",
+      "name": "GitHub - Latest Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        26336,
+        8208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v756DllAgpeSgKnw",
+          "name": "Header Auth account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e2217996-12cd-4705-968f-6b3eacc0e9ed",
+              "leftValue": "={{ $json.workflow_runs[0].status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8ee46054-2f89-43ad-842c-04616bec0730",
+      "name": "IF - Run Finished",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        26560,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a14dcdcf-2cb9-4847-bcba-d90f5fb63a3f",
+              "leftValue": "={{ $json.workflow_runs[0].conclusion }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5da0472c-78e6-41e4-9159-136981e250f8",
+      "name": "IF - Run Succeeded",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        26768,
+        8224
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Set Reel URL').item.json.owner }}/{{ $('Set Reel URL').item.json.repo }}/actions/runs/{{ $json.workflow_runs[0].id }}/artifacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "61645052-ba82-4369-9cdf-454d312b8cb4",
+      "name": "GitHub - List Artifacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        27216,
+        8208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v756DllAgpeSgKnw",
+          "name": "Header Auth account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Set Reel URL').item.json.owner }}/{{ $('Set Reel URL').item.json.repo }}/actions/artifacts/{{ $json.artifacts[0].id }}/zip",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "id": "7eafa00c-91a1-4c1f-bc42-6d85dc0472ae",
+      "name": "Download Artifact Zip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        27664,
+        8192
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v756DllAgpeSgKnw",
+          "name": "Header Auth account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// GitHub artifact downloads sometimes arrive without a fileExtension.\n// The Compression node throws if fileExtension is missing, so set it here.\nconst items = $input.all();\nfor (const item of items) {\n  if (item.binary && item.binary.data) {\n    item.binary.data.fileExtension = 'zip';\n    item.binary.data.fileName = 'reel-report.zip';\n  }\n}\nreturn items;"
+      },
+      "id": "2849d88b-7806-42ed-acb6-22fd8a6719b3",
+      "name": "Fix Zip Extension",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        27904,
+        8192
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b77ab7a8-ace5-4195-b556-2dc685575c7c",
+      "name": "Decompress Zip",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1,
+      "position": [
+        28144,
+        8192
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Set Reel URL').item.json.email }}",
+        "subject": "=Reel report - {{ $('Set Reel URL').item.json.reel_url }}",
+        "emailType": "text",
+        "message": "=Your video report PDF is attached.\n\nVideo: {{ $('Set Reel URL').item.json.reel_url }}\n\nGitHub run: {{ $('GitHub - Latest Run').item.json.workflow_runs[0].status }} / {{ $('GitHub - Latest Run').item.json.workflow_runs[0].conclusion }}\n\nThe PDF is attached to this email. No zip file.",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "file_0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8ff50cb8-42c8-4560-87d9-619ee553e8a1",
+      "name": "Gmail - Send PDF",
+      "position": [
+        28400,
+        8192
+      ],
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "webhookId": "5aff6fb2-57ff-4cbe-89b4-e1cc3c80dcad",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "H2YZ8aoRTTWOR62q",
+          "name": "Gmail account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "61c6edb4-ff12-4803-bc46-6edf4cabeafe",
+      "name": "Wait 2 min Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        26752,
+        8608
+      ],
+      "webhookId": "2a12612a-d75b-4b3f-b975-75730713db07"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Set Reel URL').item.json.email }}",
+        "subject": "=Video report failed - {{ $('Set Reel URL').item.json.reel_url }}",
+        "emailType": "text",
+        "message": "=Your video report could not be created.\n\nVideo: {{ $('Set Reel URL').item.json.reel_url }}\n\nThe video processing did not finish successfully. Please try again with the same video, or try a different video.",
+        "options": {}
+      },
+      "id": "d313c091-e378-43b2-afba-ac4714550516",
+      "name": "Gmail - Send Failure",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        27232,
+        8624
+      ],
+      "webhookId": "65246798-0251-40e9-b775-d89145b223a4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "H2YZ8aoRTTWOR62q",
+          "name": "Gmail account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://api.github.com/repos/{{ $('Set Reel URL').item.json.owner }}/{{ $('Set Reel URL').item.json.repo }}/actions/artifacts/{{ $('GitHub - List Artifacts').first().json.artifacts[0].id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "388eeee1-414d-4557-ae5d-d5f2e21568af",
+      "name": "Delete Artifact After Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        28624,
+        8192
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "v756DllAgpeSgKnw",
+          "name": "Header Auth account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9cb451c0-19ec-453a-b73a-07b8fae5281e",
+              "leftValue": "={{ $json.artifacts[0].name }}",
+              "rightValue": "reel-report",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        27424,
+        8208
+      ],
+      "id": "9aea6d08-6bbe-41fb-be0a-95d40ace57c8",
+      "name": "IF - Artifact Found"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "IF - Secret OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Secret OK": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Reel URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Reel URL": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Start Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Start Extract": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 min": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Latest Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - Latest Run": {
+      "main": [
+        [
+          {
+            "node": "IF - Run Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub - List Artifacts": {
+      "main": [
+        [
+          {
+            "node": "IF - Artifact Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Artifact Zip": {
+      "main": [
+        [
+          {
+            "node": "Fix Zip Extension",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix Zip Extension": {
+      "main": [
+        [
+          {
+            "node": "Decompress Zip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decompress Zip": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Run Finished": {
+      "main": [
+        [
+          {
+            "node": "IF - Run Succeeded",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 2 min Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 min Retry": {
+      "main": [
+        [
+          {
+            "node": "GitHub - Latest Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Run Succeeded": {
+      "main": [
+        [
+          {
+            "node": "GitHub - List Artifacts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send PDF": {
+      "main": [
+        [
+          {
+            "node": "Delete Artifact After Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Artifact Found": {
+      "main": [
+        [
+          {
+            "node": "Download Artifact Zip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4dbc9b10-5998-4274-be4c-03fcbe887cb5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "82a8dff4ece868efe8a5f7bd97caef2407850c3bd331c6a553ee3be9258656d9"
+  },
+  "id": "aO8uGs8xbtQpsuPA",
+  "tags": []
+}
